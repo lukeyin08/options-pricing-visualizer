@@ -95,3 +95,14 @@ def test_pathwise_delta_put_sign():
     # Put delta is negative.
     res = mc.mc_delta_pathwise(100, 100, 1.0, 0.05, 0.2, 0.0, "put", n=200_000, seed=5)
     assert res.estimate < 0.0
+
+
+def test_variance_reduction_report_handles_zero_variance():
+    # Deep OTM, low vol, short T: every simulated payoff is 0, so all standard
+    # errors are 0. The report must not raise ZeroDivisionError.
+    import math
+
+    rep = mc.variance_reduction_report(100, 200, 0.1, 0.05, 0.10, 0.0, "call", n=20_000, seed=0)
+    assert rep["se_naive"] == 0.0
+    for key in ("vrf_antithetic", "vrf_control_variate"):
+        assert math.isinf(rep[key]) or math.isnan(rep[key])

@@ -225,7 +225,7 @@ def surface_matplotlib(
 # --------------------------------------------------------------------------
 def surface_plotly(
     name: str, base: BaseCase = BASE, option_type: str = "call", **grid_kwargs
-):
+) -> "go.Figure":
     """Interactive plotly 3D surface (returns a go.Figure)."""
     if go is None:  # pragma: no cover
         raise RuntimeError("plotly is not installed")

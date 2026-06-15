@@ -60,15 +60,18 @@ class MCResult:
 
     @property
     def price(self) -> float:
+        """Alias for ``estimate`` so price results read naturally."""
         return self.estimate
 
     @property
     def ci95(self) -> Tuple[float, float]:
+        """The 95% confidence interval, ``estimate +/- 1.96 * std_error``."""
         h = Z95 * self.std_error
         return (self.estimate - h, self.estimate + h)
 
     @property
     def ci_halfwidth(self) -> float:
+        """Half-width of the 95% confidence interval (``1.96 * std_error``)."""
         return Z95 * self.std_error
 
 
@@ -175,12 +178,21 @@ def variance_reduction_report(
     naive = mc_price(S, K, T, r, sigma, q, option_type, n=n, seed=seed)
     anti = mc_price_antithetic(S, K, T, r, sigma, q, option_type, n=n, seed=seed)
     cv = mc_price_control_variate(S, K, T, r, sigma, q, option_type, n=n, seed=seed)
+
+    def _vrf(se_base: float, se_method: float) -> float:
+        # Guard the degenerate case (e.g. deep OTM where every payoff is 0, so
+        # all standard errors are 0): infinite reduction if there was variance
+        # to remove, otherwise undefined.
+        if se_method == 0.0:
+            return float("inf") if se_base > 0.0 else float("nan")
+        return (se_base / se_method) ** 2
+
     return {
         "se_naive": naive.std_error,
         "se_antithetic": anti.std_error,
         "se_control_variate": cv.std_error,
-        "vrf_antithetic": (naive.std_error / anti.std_error) ** 2,
-        "vrf_control_variate": (naive.std_error / cv.std_error) ** 2,
+        "vrf_antithetic": _vrf(naive.std_error, anti.std_error),
+        "vrf_control_variate": _vrf(naive.std_error, cv.std_error),
     }
 
 

@@ -1,6 +1,6 @@
 # Options Pricing and Greeks Visualizer
 
-A from-scratch Black-Scholes engine in Python: pricing, the full set of analytical Greeks, a Monte Carlo pricer with variance reduction, and a Greek visualizer across strike and time to expiry. The standard normal distribution, the pricing formulas, and every Greek are implemented from first principles. scipy is used only in the test suite as an independent reference, never in the core. 1757 tests pass, including every analytical Greek checked against finite differences and Monte Carlo checked against Black-Scholes inside its confidence interval.
+A from-scratch Black-Scholes engine in Python: pricing, the full set of analytical Greeks, a Monte Carlo pricer with variance reduction, and a Greek visualizer across strike and time to expiry. The standard normal distribution, the pricing formulas, and every Greek are implemented from first principles. scipy is used only in the test suite as an independent reference, never in the core. 1763 tests pass, including every analytical Greek checked against finite differences and Monte Carlo checked against Black-Scholes inside its confidence interval.
 
 ## 1. Overview
 
@@ -13,7 +13,7 @@ The library prices European calls and puts under geometric Brownian motion with 
 pip install -r requirements.txt
 
 # 2. run the full test suite
-python -m pytest            # 1757 tests
+python -m pytest            # 1763 tests
 
 # 3. regenerate every figure into figures/
 python scripts/generate_figures.py
@@ -101,7 +101,7 @@ The common-random-numbers bump computes $[V(S+h) - 2V(S) + V(S-h)]/h^2$ where al
 
 ### 3.5 A note on validating Greeks against finite differences
 
-The Greeks are differenced against a machine-precision reference price built on the standard library's exact `math.erf`, not against the library's own price. The shipped price uses the Abramowitz and Stegun polynomial, whose derivative is not exactly the normal density $\phi$ that the analytical Greeks use. Differencing that price reintroduces (and for rho amplifies, through the large sensitivity $\partial d_2/\partial r \approx 9$ at long maturity and low vol) the polynomial's $10^{-7}$ wobble, which would mask the thing being tested: whether the closed-form Greek formulas are correct. Differencing an exact price isolates the formula check. Coverage is complete in tandem: the price tests show the shipped price matches the true price to about $10^{-6}$, and the Greek tests show the formulas match the exact derivatives of the true price to $10^{-7}$ to $10^{-5}$.
+The Greeks are differenced against a machine-precision reference price built on the standard library's exact `math.erf`, not against the library's own price. The shipped price uses the Abramowitz and Stegun polynomial, whose derivative is not exactly the normal density $\phi$ that the analytical Greeks use. Differencing that price reintroduces (and for rho amplifies, through the large sensitivity $\partial d_2/\partial r \approx 9$ at long maturity and low vol) the polynomial's $10^{-7}$ wobble, which would mask the thing being tested: whether the closed-form Greek formulas are correct. Differencing an exact price isolates the formula check. Coverage is complete in tandem: the price tests show the shipped price matches the true price to better than $10^{-5}$ (about $8\times10^{-6}$ on the reference cases), and the Greek tests show the formulas match the exact derivatives of the true price to $10^{-7}$ to $10^{-5}$.
 
 ## 4. Results
 
@@ -189,7 +189,7 @@ options-pricing-visualizer/
     generate_figures.py  # regenerate every figure into figures/
     run_comparison.py    # print BS vs MC tables, write comparison figures
   app/streamlit_app.py   # interactive dashboard (bonus)
-  tests/                 # 1757 tests (normal, BS, Greeks, MC, comparison, app)
+  tests/                 # 1763 tests (normal, BS, Greeks, MC, comparison, app)
   figures/               # generated PNGs and interactive HTML surfaces
   results/               # generated comparison table (markdown)
 ```

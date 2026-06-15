@@ -93,6 +93,23 @@ def test_implied_vol_out_of_bounds_raises():
         implied_vol(upper + 1.0, S, K, T, r, 0.0, "call")
 
 
+def test_implied_vol_above_reachable_bound_raises():
+    # For S=K=100, T=1, r=0.05 the max call price at sigma=5 is ~98.79, below the
+    # no-arbitrage ceiling of 100. A target in between needs vol > hi: the solver
+    # must raise, not silently return hi.
+    assert bs_price(100, 100, 1.0, 0.05, 5.0, 0.0, "call") < 99.0 < 100.0
+    with pytest.raises(ValueError):
+        implied_vol(99.0, 100.0, 100.0, 1.0, 0.05, 0.0, "call")
+
+
+@pytest.mark.parametrize("sigma_true", [0.12, 0.35, 0.80, 1.50])
+def test_implied_vol_roundtrip_high_vol(sigma_true):
+    # Any vol within the bracket round-trips exactly (no silent non-convergence).
+    S, K, T, r, q = 100.0, 100.0, 1.0, 0.05, 0.0
+    price = bs_price(S, K, T, r, sigma_true, q, "call")
+    assert implied_vol(price, S, K, T, r, q, "call") == pytest.approx(sigma_true, abs=1e-6)
+
+
 def test_vectorized_matches_scalar():
     S = np.linspace(60, 140, 9)
     K, T, r, sigma, q = 100.0, 0.5, 0.04, 0.25, 0.0

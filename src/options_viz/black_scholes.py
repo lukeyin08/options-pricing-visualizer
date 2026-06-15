@@ -232,14 +232,23 @@ def implied_vol(
             f"price {price:.6g} is outside the no-arbitrage bounds "
             f"[{lower:.6g}, {upper:.6g}] for a {ot}."
         )
-    # At the boundaries volatility is degenerate (0 or +inf); clamp sensibly.
-    if price <= lower + tol:
-        return lo
-    if price >= upper - tol:
-        return hi
-
     def f(sig: float) -> float:
         return float(bs_price(S, K, T, r, sig, q, ot)) - price
+
+    # At the lower bound the option is worth its intrinsic value to within
+    # floating point: time value (and vega) have vanished, so the vol is not
+    # identifiable and 0 is the only sensible answer.
+    if price <= lower + tol:
+        return lo
+    # The price is strictly increasing in sigma and approaches `upper` only as
+    # sigma -> infinity. If the target exceeds the most we can reach at hi, the
+    # implied vol is outside the search bracket; say so rather than guess.
+    price_at_hi = f(hi) + price
+    if price > price_at_hi + tol:
+        raise ValueError(
+            f"implied vol exceeds the search bound hi={hi:g}: price {price:.6g} is above "
+            f"the maximum reachable {price_at_hi:.6g}. Increase hi."
+        )
 
     # --- Newton-Raphson -------------------------------------------------
     sigma = 0.2  # neutral starting guess
@@ -256,16 +265,19 @@ def implied_vol(
             break
         sigma = sigma_new
 
-    # --- Bisection fallback (guaranteed) --------------------------------
+    # --- Bisection fallback (now guaranteed bracketed: f(lo) <= 0 <= f(hi)) --
     a, b = lo, hi
     fa = f(a)
+    m = 0.5 * (a + b)
     for _ in range(200):
         m = 0.5 * (a + b)
         fm = f(m)
-        if abs(fm) < tol or (b - a) < 1e-12:
+        if abs(fm) < tol or (b - a) < 1e-13:
             return m
         if (fm > 0.0) == (fa > 0.0):
             a, fa = m, fm
         else:
             b = m
-    return 0.5 * (a + b)
+    if abs(f(m)) > max(tol, 1e-7):  # never silently return a non-converged value
+        raise ValueError(f"implied_vol failed to converge (residual {f(m):.2e}).")
+    return m
