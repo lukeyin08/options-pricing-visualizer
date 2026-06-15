@@ -1,10 +1,17 @@
 # Options Pricing and Greeks Visualizer
 
-A from-scratch Black-Scholes engine in Python: pricing, the full set of analytical Greeks, a Monte Carlo pricer with variance reduction, and a Greek visualizer across strike and time to expiry. The standard normal distribution, the pricing formulas, and every Greek are implemented from first principles. scipy is used only in the test suite as an independent reference, never in the core. 1763 tests pass, including every analytical Greek checked against finite differences and Monte Carlo checked against Black-Scholes inside its confidence interval.
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![tests](https://img.shields.io/badge/tests-1763%20passing-brightgreen)
+
+<!-- After pushing to GitHub, swap in the live CI badge (replace USER/REPO):
+[![tests](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml) -->
+
+A from-scratch Black-Scholes engine in Python: pricing, analytical Greeks, a Monte Carlo pricer with variance reduction, and a Greek visualizer across strike and time to expiry. The normal distribution, the pricing formulas, and the Greeks are written from scratch; scipy appears only in the tests, as a reference. 1763 tests pass: every Greek against finite differences, Monte Carlo against Black-Scholes inside its confidence interval.
 
 ## 1. Overview
 
-The library prices European calls and puts under geometric Brownian motion with a continuous dividend yield, returns closed-form Greeks (delta, gamma, vega, theta, rho, plus the second-order vanna and volga), and cross-checks everything two ways: analytical Greeks against central finite differences, and Black-Scholes prices against a Monte Carlo estimator with antithetic and control variates. The visualizer turns the Greeks into 2D slices, 3D surfaces, and heatmaps that make the textbook behavior obvious: gamma spikes at the money as expiry approaches, vega peaks at the money and grows with maturity, and delta is an S-curve that steepens near expiry.
+It prices European calls and puts under geometric Brownian motion with continuous dividend yield, returns closed-form Greeks (delta, gamma, vega, theta, rho, vanna, volga), and checks them two ways: Greeks against central finite differences, prices against a Monte Carlo estimator with antithetic and control variates. The visualizer plots the Greeks as 2D slices, 3D surfaces, and heatmaps. Three behaviors stand out: gamma spikes at the money as expiry approaches, vega peaks at the money and grows with maturity, and delta is an S-curve that steepens near expiry.
 
 ## 2. Quickstart
 
@@ -87,7 +94,7 @@ The estimator samples the exact terminal law and discounts the mean payoff:
 
 $$ \hat{V} = e^{-rT}\,\frac{1}{N}\sum_{i=1}^{N} \text{payoff}(S_T^{(i)}), \qquad \text{SE} = \frac{\mathrm{std}(e^{-rT}\,\text{payoff})}{\sqrt{N}}, $$
 
-with a 95% confidence interval $\hat{V} \pm 1.96\,\text{SE}$. The error decays like $1/\sqrt{N}$ regardless of dimension, which is the entire reason Monte Carlo is the tool of choice for high-dimensional and path-dependent problems.
+with a 95% confidence interval $\hat{V} \pm 1.96\,\text{SE}$. The error decays like $1/\sqrt{N}$ independent of dimension, which is why Monte Carlo wins for high-dimensional and path-dependent payoffs.
 
 **Antithetic variates.** Draw $N/2$ normals $Z$ and reuse $-Z$. Averaging the discounted payoff of each $(Z, -Z)$ pair cancels the component of the payoff that is odd in $Z$. Whenever the payoff is monotone in $Z$ (true for vanilla calls and puts) the two legs are negatively correlated and the pair average has lower variance. Measured factor for the at-the-money call: about $2.0\times$.
 
@@ -108,7 +115,7 @@ The Greeks are differenced against a machine-precision reference price built on 
 ### Gamma vs strike, by maturity
 ![Gamma vs strike](figures/gamma_vs_strike.png)
 
-At one week to expiry (T = 0.05) gamma is a tall, narrow spike right at the strike, reaching about 0.089 at the money. As maturity lengthens the peak collapses and broadens: at one year the at-the-money gamma is only about 0.019. This is the visual statement that a short-dated at-the-money option's delta flips fastest as spot moves.
+At one week (T = 0.05) gamma is a tall narrow spike at the strike, about 0.089 at the money. By one year it has collapsed and broadened to about 0.019. A short-dated at-the-money option's delta flips fastest as spot moves.
 
 ### Gamma vs time to expiry, by moneyness
 ![Gamma vs time](figures/gamma_vs_time.png)
@@ -118,7 +125,7 @@ The at-the-money line (blue) blows up as $T \to 0$, while the in- and out-of-the
 ### Vega vs strike, by maturity
 ![Vega vs strike](figures/vega_vs_strike.png)
 
-Vega peaks at the money and grows with maturity through the $\sqrt{T}$ factor: the one-year line tops out near 40 while the one-week line barely reaches 9. Long-dated at-the-money options carry the most volatility exposure, which is why they are the natural instruments for trading vol.
+Vega peaks at the money and grows with maturity through the $\sqrt{T}$ factor: the one-year line tops out near 40, the one-week line near 9. Long-dated at-the-money options carry the most volatility exposure.
 
 ### Delta vs strike, by maturity
 ![Delta vs strike](figures/delta_vs_strike.png)
@@ -154,7 +161,7 @@ The left panel shows the price with its 95% interval tightening onto the Black-S
 
 ![BS vs MC error bars](figures/bs_vs_mc_errorbars.png)
 
-**Timing and the tradeoff.** One Black-Scholes price takes about 17 microseconds and is exact. Monte Carlo costs about 0.18 ms at $N = 10^4$, 1.0 ms at $N = 10^5$, and 10 ms at $N = 10^6$, so it is hundreds of times slower for a single European price and carries $1/\sqrt{N}$ noise on top. What you buy for that cost is generality: Monte Carlo prices path-dependent and exotic payoffs (Asian, barrier, lookback, basket) and arbitrary dynamics that have no closed form, simply by changing the payoff or the simulation. Variance reduction recovers much of the speed gap, control variates cutting the at-the-money variance about seven times here. This is exactly the tradeoff an interviewer probes: closed form is fast and exact but rigid, Monte Carlo is slow and noisy but general.
+**Timing and the tradeoff.** One Black-Scholes price takes about 17 microseconds and is exact. Monte Carlo costs about 0.18 ms at $N = 10^4$, 1.0 ms at $N = 10^5$, and 10 ms at $N = 10^6$: hundreds of times slower for one European price, plus $1/\sqrt{N}$ noise. The tradeoff buys generality. Monte Carlo prices path-dependent and exotic payoffs (Asian, barrier, lookback, basket) and arbitrary dynamics with no closed form, by changing the payoff or the simulation. Variance reduction narrows the gap: control variates cut the at-the-money variance about seven times here. Closed form is fast, exact, and rigid; Monte Carlo is slow, noisy, and general.
 
 ## 6. Conventions
 
@@ -164,7 +171,7 @@ The left panel shows the price with its 95% interval tightening onto the Black-S
 
 ## 7. Limitations and extensions
 
-The model's assumptions are also its limitations. Volatility is constant, which the volatility smile observed in real markets directly contradicts; a stochastic-volatility model (Heston) or a local-volatility surface relaxes this. The terminal distribution is lognormal with no jumps; jump-diffusion (Merton) adds fat tails. Hedging is assumed continuous and frictionless, which ignores transaction costs and gap risk. Only European exercise is priced here; American options need a binomial or trinomial tree or Longstaff-Schwartz least-squares Monte Carlo for the early-exercise boundary. Path-dependent payoffs (Asian, barrier, lookback) need multi-step path simulation, which the Monte Carlo module is structured to extend to (the single-step terminal sampler becomes a loop-free `(N, steps)` array of increments).
+The model's assumptions are also its limitations. Volatility is constant, which the market's volatility smile contradicts; a stochastic-volatility model (Heston) or a local-volatility surface relaxes this. The terminal distribution is lognormal with no jumps; jump-diffusion (Merton) adds fat tails. Hedging is assumed continuous and frictionless, which ignores transaction costs and gap risk. Only European exercise is priced here; American options need a binomial or trinomial tree or Longstaff-Schwartz least-squares Monte Carlo for the early-exercise boundary. Path-dependent payoffs (Asian, barrier, lookback) need multi-step path simulation, which the Monte Carlo module is structured to extend to (the single-step terminal sampler becomes a loop-free `(N, steps)` array of increments).
 
 ## 8. References
 
